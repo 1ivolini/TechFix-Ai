@@ -1,3 +1,7 @@
+CREATE DATABASE Techfixai;
+
+
+
 CREATE TABLE usuario(
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
@@ -5,8 +9,8 @@ CREATE TABLE usuario(
     email VARCHAR(150) NOT NULL,
     senha_hash VARCHAR(255) NOT NULL,
     Tipo ENUM('aluno', 'professor') NOT NULL DEFAULT 'aluno',
-    criado_em DATETIME NOT NULL DEFATULT CURRENT_TIMESTAMP
-)
+    criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE cenario(
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -20,7 +24,7 @@ CREATE TABLE cenario(
 
     CONSTRAINT fk_cenario_usuario FOREIGN KEY (criado_por)
     REFERENCES usuario(id) ON DELETE SET NULL ON UPDATE CASCADE
-)
+);
 
 CREATE TABLE acao(
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -36,7 +40,7 @@ CREATE TABLE acao(
         ON DELETE CASCADE 
         ON UPDATE CASCADE
 
-)
+);
 
 CREATE TABLE dica (
 
@@ -55,21 +59,21 @@ CREATE TABLE dica (
             ON DELETE CASCADE
             ON UPDATE CASCADE
 
-)
+);
 
 CREATE TABLE diagnostico(
     id INT AUTO_INCREMENT PRIMARY KEY,
     cenario_id INT NOT NULL,
     descricao VARCHAR(255) NOT NULL,
     correto BOOLEAN NOT NULL DEFAULT FALSE,
-    explicacao TEXT NO NULL,
+    explicacao TEXT NOT NULL,
 
     CONSTRAINT fk_diagnostico_cenario
         FOREIGN KEY (cenario_id)
         REFERENCES cenario(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
-)
+);
 
 CREATE TABLE tentativa (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -96,12 +100,12 @@ CREATE TABLE tentativa (
         ON UPDATE CASCADE,
 
     CONSTRAINT fk_tentativa_diagnostico
-        FOREIGN (diagnostico_id)
+        FOREIGN KEY(diagnostico_id)
         REFERENCES diagnostico(id)
         ON DELETE SET NULL
         ON UPDATE CASCADE
 
-)
+);
 
 CREATE TABLE acao_tentativa (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -123,7 +127,7 @@ CREATE TABLE acao_tentativa (
         ON DELETE CASCADE
         ON UPDATE CASCADE
 
-)
+);
 
 
 
@@ -150,4 +154,4 @@ CREATE TABLE dica_tentativa(
         ON UPDATE CASCADE
 
 
-)
+);
