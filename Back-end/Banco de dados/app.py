@@ -1,9 +1,19 @@
+
 from flask import Flask, jsonify, request
 from mysql.connector import Error
 from database import get_connection
+from flask_cors import CORS
 
 app = Flask(__name__)
 
+CORS(
+    app,
+    resources={
+        r"/*": {
+            "origins": ["http://localhost:5173"]
+        }
+    }
+)
 
 @app.route("/", methods=["GET"])
 def inicio():
