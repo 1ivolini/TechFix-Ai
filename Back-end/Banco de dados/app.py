@@ -1,9 +1,35 @@
 
+import os
+import secrets
+
+from datetime import timedelta
+
 from flask import Flask, jsonify, request
 from mysql.connector import Error
 from database import get_connection
 from flask_cors import CORS
+from flask_jwt_extended import create_access_token
 
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
+
+from flask_jwt_extended import (
+    JWTManager,
+    create_access_token,
+    jwt_required,
+    get_jwt_identity
+)
+def gerar_headers(usuario_id=1):
+    with app_module.app.app_context():
+        token = create_access_token(
+            identity=str(usuario_id)
+        )
+
+    return {
+        "Authorization": f"Bearer {token}"
+    }
 app = Flask(__name__)
 
 CORS(
@@ -14,12 +40,244 @@ CORS(
         }
     }
 )
+# Configurações de autenticação JWT
+app.config["JWT_SECRET_KEY"] = (
+    os.environ.get("JWT_SECRET_KEY") or secrets.token_hex(32)
+)
+
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=2)
+
+jwt = JWTManager(app)
 
 @app.route("/", methods=["GET"])
 def inicio():
     return jsonify({
         "mensagem": "API do TECHFIX AI funcionando!"
     })
+
+
+@app.route("/usuarios", methods=["POST"])
+def cadastrar_usuario():
+    dados = request.get_json(silent=True)
+
+    # Verificar se os dados foram enviados em JSON
+    if not isinstance(dados, dict):
+        return jsonify({
+            "erro": "Envie os dados em formato JSON."
+        }), 400
+
+    nome = dados.get("nome")
+    nome_usuario = dados.get("nome_usuario")
+    email = dados.get("email")
+    senha = dados.get("senha")
+
+    # Verificar se todos os campos são textos
+    if not all(
+        isinstance(valor, str)
+        for valor in [nome, nome_usuario, email, senha]
+    ):
+        return jsonify({
+            "erro": "Todos os campos são obrigatórios."
+        }), 400
+
+    # Remover espaços desnecessários
+    nome = nome.strip()
+    nome_usuario = nome_usuario.strip()
+    email = email.strip().lower()
+
+    # Validar campos vazios
+    if not nome or not nome_usuario or not email or not senha:
+        return jsonify({
+            "erro": "Preencha todos os campos."
+        }), 400
+
+    # Validar tamanhos dos campos
+    if len(nome) > 100 or len(nome_usuario) > 50 or len(email) > 150:
+        return jsonify({
+            "erro": "Um ou mais campos ultrapassam o tamanho permitido."
+        }), 400
+
+    if len(nome_usuario) < 3:
+        return jsonify({
+            "erro": "O nome de usuário deve possuir pelo menos 3 caracteres."
+        }), 400
+
+    if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
+        return jsonify({
+            "erro": "Informe um endereço de e-mail válido."
+        }), 400
+
+    if len(senha) < 8:
+        return jsonify({
+            "erro": "A senha deve possuir pelo menos 8 caracteres."
+        }), 400
+
+    connection = get_connection()
+
+    if connection is None:
+        return jsonify({
+            "erro": "Não foi possível conectar ao banco de dados."
+        }), 500
+
+    cursor = None
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # Verificar se o nome de usuário já existe
+        cursor.execute(
+            "SELECT id FROM usuario WHERE nome_usuario = %s",
+            (nome_usuario,)
+        )
+
+        usuario_existente = cursor.fetchone()
+
+        if usuario_existente is not None:
+            return jsonify({
+                "erro": "Este nome de usuário já está cadastrado."
+            }), 409
+
+        # Gerar o hash da senha
+        senha_hash = generate_password_hash(senha)
+
+        # Cadastrar o usuário como aluno
+        cursor.execute("""
+            INSERT INTO usuario (
+                nome,
+                nome_usuario,
+                email,
+                senha_hash
+            )
+            VALUES (%s, %s, %s, %s)
+        """, (
+            nome,
+            nome_usuario,
+            email,
+            senha_hash
+        ))
+
+        usuario_id = cursor.lastrowid
+
+        connection.commit()
+
+        return jsonify({
+            "mensagem": "Usuário cadastrado com sucesso!",
+            "usuario": {
+                "id": usuario_id,
+                "nome": nome,
+                "nome_usuario": nome_usuario,
+                "email": email,
+                "tipo": "aluno"
+            }
+        }), 201
+
+    except Error as erro:
+        connection.rollback()
+
+        # Tratar possíveis duplicidades no banco
+        if erro.errno == 1062:
+            return jsonify({
+                "erro": "Este nome de usuário já está cadastrado."
+            }), 409
+
+        app.logger.exception("Erro ao cadastrar usuário")
+
+        return jsonify({
+            "erro": "Não foi possível cadastrar o usuário."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        connection.close()
+
+@app.route("/login", methods=["POST"])
+def login():
+    dados = request.get_json(silent=True)
+
+    if not isinstance(dados, dict):
+        return jsonify({
+            "erro": "Envie os dados em formato JSON."
+        }), 400
+
+    nome_usuario = dados.get("nome_usuario")
+    senha = dados.get("senha")
+
+    if not isinstance(nome_usuario, str) or not isinstance(senha, str):
+        return jsonify({
+            "erro": "Informe o nome de usuário e a senha."
+        }), 400
+
+    nome_usuario = nome_usuario.strip()
+
+    if not nome_usuario or not senha:
+        return jsonify({
+            "erro": "Preencha todos os campos."
+        }), 400
+
+    connection = get_connection()
+
+    if connection is None:
+        return jsonify({
+            "erro": "Não foi possível conectar ao banco de dados."
+        }), 500
+
+    cursor = None
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+
+        # Buscar o usuário pelo nome de usuário
+        cursor.execute("""
+            SELECT id, nome, nome_usuario, email, senha_hash, Tipo
+            FROM usuario
+            WHERE nome_usuario = %s
+        """, (nome_usuario,))
+
+        usuario = cursor.fetchone()
+
+        # Verificar se o usuário existe e se a senha corresponde
+        if (
+            usuario is None
+            or not check_password_hash(usuario["senha_hash"], senha)
+        ):
+            return jsonify({
+                "erro": "Nome de usuário ou senha incorretos."
+            }), 401
+
+        # Gerar token de autenticação
+        token = create_access_token(
+            identity=str(usuario["id"]),
+            additional_claims={
+                "tipo": usuario["Tipo"]
+            }
+        )
+
+        return jsonify({
+            "mensagem": "Login realizado com sucesso!",
+            "token": token,
+            "usuario": {
+                "id": usuario["id"],
+                "nome": usuario["nome"],
+                "nome_usuario": usuario["nome_usuario"],
+                "email": usuario["email"],
+                "tipo": usuario["Tipo"]
+            }
+        }), 200
+
+    except Error:
+        app.logger.exception("Erro ao realizar login")
+
+        return jsonify({
+            "erro": "Não foi possível realizar o login."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        connection.close()
 
 
 @app.route("/cenarios", methods=["GET"])
@@ -144,8 +402,11 @@ def consultar_cenario(cenario_id):
             cursor.close()
 
         connection.close()
+
 @app.route("/tentativas", methods=["POST"])
+@jwt_required()
 def iniciar_tentativa():
+
     dados = request.get_json(silent=True)
 
     if not isinstance(dados, dict):
@@ -153,17 +414,14 @@ def iniciar_tentativa():
             "erro": "Envie os dados em formato JSON."
         }), 400
 
-    usuario_id = dados.get("usuario_id")
+    # Recuperar o ID do usuário autenticado pelo token
+    usuario_id = int(get_jwt_identity())
+
     cenario_id = dados.get("cenario_id")
 
-    if (
-        type(usuario_id) is not int
-        or type(cenario_id) is not int
-        or usuario_id <= 0
-        or cenario_id <= 0
-    ):
+    if type(cenario_id) is not int or cenario_id <= 0:
         return jsonify({
-            "erro": "Informe um usuario_id e um cenario_id válidos."
+            "erro": "Informe um cenario_id válido."
         }), 400
 
     connection = get_connection()
@@ -240,10 +498,12 @@ def iniciar_tentativa():
             cursor.close()
 
         connection.close()
+
 @app.route(
     "/tentativas/<int:tentativa_id>/acoes",
     methods=["POST"]
 )
+@jwt_required()
 def registrar_acao(tentativa_id):
     dados = request.get_json(silent=True)
 
@@ -273,10 +533,10 @@ def registrar_acao(tentativa_id):
 
         # Verifica se a tentativa existe e está aberta
         cursor.execute("""
-            SELECT id, cenario_id, concluida
-            FROM tentativa
-            WHERE id = %s
-        """, (tentativa_id,))
+    SELECT id, usuario_id, cenario_id, concluida
+    FROM tentativa
+    WHERE id = %s
+""", (tentativa_id,))
 
         tentativa = cursor.fetchone()
 
@@ -284,7 +544,14 @@ def registrar_acao(tentativa_id):
             return jsonify({
                 "erro": "Tentativa não encontrada."
             }), 404
+                # Recuperar o usuário autenticado
+        usuario_autenticado = int(get_jwt_identity())
 
+        # Verificar se a tentativa pertence ao usuário
+        if tentativa["usuario_id"] != usuario_autenticado:
+            return jsonify({
+                "erro": "Você não tem permissão para acessar esta tentativa."
+            }), 403
         if tentativa["concluida"]:
             return jsonify({
                 "erro": "Esta tentativa já foi concluída."
@@ -354,6 +621,7 @@ def registrar_acao(tentativa_id):
     "/tentativas/<int:tentativa_id>/dicas",
     methods=["POST"]
 )
+@jwt_required()
 def solicitar_dica(tentativa_id):
     connection = get_connection()
 
@@ -369,10 +637,10 @@ def solicitar_dica(tentativa_id):
 
         # Verificar se a tentativa existe
         cursor.execute("""
-            SELECT id, cenario_id, concluida
-            FROM tentativa
-            WHERE id = %s
-        """, (tentativa_id,))
+    SELECT id, usuario_id, cenario_id, concluida
+    FROM tentativa
+    WHERE id = %s
+""", (tentativa_id,))
 
         tentativa = cursor.fetchone()
 
@@ -380,6 +648,15 @@ def solicitar_dica(tentativa_id):
             return jsonify({
                 "erro": "Tentativa não encontrada."
             }), 404
+
+        # Recuperar o usuário autenticado
+        usuario_autenticado = int(get_jwt_identity())
+
+        # Verificar se a tentativa pertence ao usuário
+        if tentativa["usuario_id"] != usuario_autenticado:
+            return jsonify({
+                "erro": "Você não tem permissão para acessar esta tentativa."
+            }), 403
 
         if tentativa["concluida"]:
             return jsonify({
@@ -468,7 +745,9 @@ def solicitar_dica(tentativa_id):
     "/tentativas/<int:tentativa_id>/finalizar",
     methods=["POST"]
 )
+@jwt_required()
 def finalizar_tentativa(tentativa_id):
+
     dados = request.get_json(silent=True)
 
     if not isinstance(dados, dict):
@@ -497,10 +776,10 @@ def finalizar_tentativa(tentativa_id):
 
         # Buscar a tentativa
         cursor.execute("""
-            SELECT id, cenario_id, concluida
-            FROM tentativa
-            WHERE id = %s
-        """, (tentativa_id,))
+        SELECT id, usuario_id, cenario_id, concluida
+        FROM tentativa
+        WHERE id = %s
+    """, (tentativa_id,))
 
         tentativa = cursor.fetchone()
 
@@ -509,6 +788,14 @@ def finalizar_tentativa(tentativa_id):
                 "erro": "Tentativa não encontrada."
             }), 404
 
+        # Recuperar o usuário autenticado
+        usuario_autenticado = int(get_jwt_identity())
+
+        # Verificar se a tentativa pertence ao usuário
+        if tentativa["usuario_id"] != usuario_autenticado:
+            return jsonify({
+                "erro": "Você não tem permissão para acessar esta tentativa."
+            }), 403
         if tentativa["concluida"]:
             return jsonify({
                 "erro": "Esta tentativa já foi concluída."
@@ -580,6 +867,7 @@ def finalizar_tentativa(tentativa_id):
 
         connection.close()
 @app.route("/tentativas/<int:tentativa_id>", methods=["GET"])
+@jwt_required()
 def consultar_tentativa(tentativa_id):
     connection = get_connection()
 
@@ -595,26 +883,30 @@ def consultar_tentativa(tentativa_id):
 
         # Buscar os dados principais da tentativa
         cursor.execute("""
-            SELECT
-                t.id,
-                u.nome_usuario,
-                c.titulo AS cenario,
-                d.descricao AS diagnostico,
-                d.correto AS diagnostico_correto,
-                t.inicio,
-                t.fim,
-                t.pontuacao,
-                t.dicas_usadas,
-                t.concluida
-            FROM tentativa AS t
-            INNER JOIN usuario AS u
-                ON u.id = t.usuario_id
-            INNER JOIN cenario AS c
-                ON c.id = t.cenario_id
-            LEFT JOIN diagnostico AS d
-                ON d.id = t.diagnostico_id
-            WHERE t.id = %s
-        """, (tentativa_id,))
+       SELECT
+                    t.id,
+                    u.nome_usuario,
+                    c.titulo AS cenario,
+                    d.descricao AS diagnostico,
+                    d.correto AS diagnostico_correto,
+                    t.inicio,
+                    t.fim,
+                    t.pontuacao,
+                    t.dicas_usadas,
+                    t.concluida
+                FROM tentativa AS t
+                INNER JOIN usuario AS u
+                    ON u.id = t.usuario_id
+                INNER JOIN cenario AS c
+                    ON c.id = t.cenario_id
+                LEFT JOIN diagnostico AS d
+                    ON d.id = t.diagnostico_id
+                WHERE t.id = %s
+                AND t.usuario_id = %s
+            """, (
+                tentativa_id,
+                int(get_jwt_identity())
+            ))
 
         tentativa = cursor.fetchone()
 
@@ -635,7 +927,9 @@ def consultar_tentativa(tentativa_id):
                 ON a.id = at.acao_id
             WHERE at.tentativa_id = %s
             ORDER BY at.realizada_em, at.id
-        """, (tentativa_id,))
+        """, (
+            tentativa_id,
+        ))
 
         acoes = cursor.fetchall()
 
@@ -685,6 +979,7 @@ def consultar_tentativa(tentativa_id):
             cursor.close()
 
         connection.close()
+
         
 if __name__ == "__main__":
     app.run(debug=True)

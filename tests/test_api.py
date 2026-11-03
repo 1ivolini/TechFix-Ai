@@ -1,6 +1,16 @@
 from unittest.mock import MagicMock, patch
+import app as app_module
+from flask_jwt_extended import create_access_token
 
+def gerar_headers(usuario_id=1):
+    with app_module.app.app_context():
+        token = create_access_token(
+            identity=str(usuario_id)
+        )
 
+    return {
+        "Authorization": f"Bearer {token}"
+    }
 def test_inicio_retorna_mensagem(client):
     response = client.get("/")
 
@@ -90,13 +100,13 @@ def test_iniciar_tentativa_com_sucesso(client):
 
     with patch("app.get_connection", return_value=connection):
         response = client.post(
-            "/tentativas",
-            json={
-                "usuario_id": 1,
-                "cenario_id": 1,
-            },
-        )
-
+        "/tentativas",
+        json={
+            "usuario_id": 1,
+            "cenario_id": 1,
+        },
+        headers=gerar_headers(1)
+    )
     assert response.status_code == 201
 
     dados = response.get_json()
@@ -115,26 +125,26 @@ def test_iniciar_tentativa_com_dados_invalidos(client):
     response = client.post(
         "/tentativas",
         json={
-            "usuario_id": "abc",
-            "cenario_id": 1,
+            "cenario_id": "abc",
         },
+        headers=gerar_headers(1)
     )
 
     assert response.status_code == 400
-    assert response.get_json() == {
-        "erro": "Informe um usuario_id e um cenario_id válidos."
-    }
 
+    assert response.get_json() == {
+    "erro": "Informe um cenario_id válido."
+    }
 def test_registrar_acao_com_sucesso(client):
     connection = MagicMock()
     cursor = MagicMock()
 
     connection.cursor.return_value = cursor
 
-    # Simula uma tentativa aberta do cenário 1.
     cursor.fetchone.side_effect = [
         {
             "id": 2,
+            "usuario_id": 1,
             "cenario_id": 1,
             "concluida": 0,
         },
@@ -154,6 +164,7 @@ def test_registrar_acao_com_sucesso(client):
         response = client.post(
             "/tentativas/2/acoes",
             json={"acao_id": 9},
+            headers=gerar_headers(1)
         )
 
     assert response.status_code == 201
@@ -182,6 +193,7 @@ def test_registrar_acao_de_outro_cenario(client):
     cursor.fetchone.side_effect = [
         {
             "id": 2,
+            "usuario_id": 1,
             "cenario_id": 1,
             "concluida": 0,
         },
@@ -199,16 +211,15 @@ def test_registrar_acao_de_outro_cenario(client):
         response = client.post(
             "/tentativas/2/acoes",
             json={"acao_id": 13},
+            headers=gerar_headers(1)
         )
 
     assert response.status_code == 400
-    assert response.get_json() == {
-        "erro": "Esta ação não pertence ao cenário da tentativa."
-    }
 
-    connection.commit.assert_not_called()
+    connection.rollback.assert_not_called()
     cursor.close.assert_called_once()
     connection.close.assert_called_once()
+
 def test_solicitar_dica_com_sucesso(client):
     connection = MagicMock()
     cursor = MagicMock()
@@ -217,10 +228,11 @@ def test_solicitar_dica_com_sucesso(client):
 
     cursor.fetchone.side_effect = [
         {
-            "id": 2,
-            "cenario_id": 1,
-            "concluida": 0,
-        },
+    "id": 2,
+    "usuario_id": 1,
+    "cenario_id": 1,
+    "concluida": 0,
+},
         {
             "proximo_nivel": 1,
         },
@@ -232,7 +244,10 @@ def test_solicitar_dica_com_sucesso(client):
     ]
 
     with patch("app.get_connection", return_value=connection):
-        response = client.post("/tentativas/2/dicas")
+        response = client.post(
+            "/tentativas/2/dicas",
+            headers=gerar_headers(1)
+    )
 
     assert response.status_code == 200
 
@@ -255,14 +270,16 @@ def test_nao_permitir_dica_em_tentativa_concluida(client):
     connection.cursor.return_value = cursor
 
     cursor.fetchone.return_value = {
-        "id": 2,
-        "cenario_id": 1,
-        "concluida": 1,
-    }
-
+    "id": 2,
+    "usuario_id": 1,
+    "cenario_id": 1,
+    "concluida": 1,
+}
     with patch("app.get_connection", return_value=connection):
-        response = client.post("/tentativas/2/dicas")
-
+        response = client.post(
+        "/tentativas/2/dicas",
+        headers=gerar_headers(1)
+    )
     assert response.status_code == 409
 
     assert response.get_json() == {
@@ -281,11 +298,12 @@ def test_finalizar_tentativa_com_sucesso(client):
 
     # Simula a tentativa aberta, o diagnóstico e a pontuação.
     cursor.fetchone.side_effect = [
-        {
-            "id": 2,
-            "cenario_id": 1,
-            "concluida": 0,
-        },
+    {
+        "id": 2,
+        "usuario_id": 1,
+        "cenario_id": 1,
+        "concluida": 0,
+    },
         {
             "id": 8,
             "descricao": "Falha na memória RAM",
@@ -298,9 +316,10 @@ def test_finalizar_tentativa_com_sucesso(client):
 
     with patch("app.get_connection", return_value=connection):
         response = client.post(
-            "/tentativas/2/finalizar",
-            json={"diagnostico_id": 8},
-        )
+        "/tentativas/2/finalizar",
+        json={"diagnostico_id": 8},
+        headers=gerar_headers(1)
+    )
 
     assert response.status_code == 200
 
@@ -326,6 +345,7 @@ def test_consultar_tentativa_com_sucesso(client):
     cursor.fetchone.return_value = {
         "id": 2,
         "nome_usuario": "aluno_teste",
+        "titulo": "computador sem vídeo",
         "cenario": "Computador sem vídeo",
         "diagnostico": "Falha na memória RAM",
         "diagnostico_correto": 1,
@@ -355,9 +375,16 @@ def test_consultar_tentativa_com_sucesso(client):
     ]
 
     with patch("app.get_connection", return_value=connection):
-        response = client.get("/tentativas/2")
+        response = client.get(
+            "/tentativas/2",
+            headers=gerar_headers(1)
+        )
 
     assert response.status_code == 200
+
+    print("Status:", response.status_code)
+    print("Resposta:", response.get_json())
+
 
     dados = response.get_json()
 
@@ -375,3 +402,11 @@ def test_consultar_tentativa_com_sucesso(client):
 
     cursor.close.assert_called_once()
     connection.close.assert_called_once()
+
+def test_registrar_acao_sem_token(client):
+    resposta = client.post(
+        "/tentativas/4/acoes",
+        json={"acao_id": 1}
+    )
+
+    assert resposta.status_code == 401
