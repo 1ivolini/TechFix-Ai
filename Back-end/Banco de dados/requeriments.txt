@@ -1,5 +1,5 @@
 Flask
+Flask-Cors
+Flask-JWT-Extended
 mysql-connector-python
 pytest
-Flask-JWT-Extended
-Flask-Cors
