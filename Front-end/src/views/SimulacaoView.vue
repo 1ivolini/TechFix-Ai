@@ -1,28 +1,33 @@
-
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-import { consultarCenario } from '../services/cenarioService.js'
+import {
+  consultarCenario,
+  listarCenarios
+} from '../services/cenarioService.js'
+
 import { useTentativas } from '../composables/useTentativas.js'
 
 const route = useRoute()
+const router = useRouter()
 
-const tentativaId = route.params.tentativaId
-const cenarioId = route.params.cenarioId
+const tentativaId = computed(() => route.params.tentativaId)
+const cenarioId = computed(() => route.params.cenarioId)
 
 // Gerenciamento das tentativas.
 const {
+  iniciarTentativa,
   registrarAcao,
   registrandoAcao,
   acoesRegistradas
 } = useTentativas()
-
+// Estados da navegação entre os casos.
+const carregandoProximoCaso = ref(false)
+const mensagemNavegacao = ref('')
 // Dados do cenário.
 const cenario = ref(null)
 const acoes = ref([])
-const dicas = ref([])
-const diagnosticos = ref([])
 
 // Estados da consulta.
 const carregando = ref(false)
@@ -31,6 +36,46 @@ const erro = ref('')
 // Estados das ações.
 const resultadoAcao = ref(null)
 const erroAcao = ref('')
+// Identificar a imagem correspondente ao cenário.
+const imagemCenario = computed(() => {
+  if (!cenario.value?.titulo) return null
+
+  const titulo = cenario.value.titulo
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  // 1. Computador desliga sozinho.
+  if (titulo.includes('desliga sozinho')) {
+    return '/images/casos/caso-computador-reinicia-sozinho.png'
+  }
+
+  // 2. Computador lento.
+  if (titulo.includes('computador lento')) {
+    return '/images/casos/caso-computador-reinicia-sozinho.png'
+  }
+
+  // 3. Superaquecimento do computador.
+  if (titulo.includes('superaquecimento')) {
+    return '/images/casos/caso-superaquecimento.png'
+  }
+
+  // 4. Computador não liga.
+  if (titulo.includes('nao liga')) {
+    return '/images/casos/caso-computador-reinicia-sozinho.png'
+  }
+
+  // Cenários anteriores, caso ainda sejam utilizados.
+  if (titulo.includes('reinicia')) {
+    return '/images/casos/caso-computador-reinicia-sozinho.png'
+  }
+
+  if (titulo.includes('video')) {
+    return '/images/casos/caso-computador-reinicia-sozinho.png'
+  }
+
+  return null
+})
 
 // Consultar os dados do cenário no Flask.
 async function carregarCenario() {
@@ -38,12 +83,10 @@ async function carregarCenario() {
   erro.value = ''
 
   try {
-    const resultado = await consultarCenario(cenarioId)
+    const resultado = await consultarCenario(cenarioId.value)
 
     cenario.value = resultado.cenario
     acoes.value = resultado.acoes
-    dicas.value = resultado.dicas
-    diagnosticos.value = resultado.diagnosticos
 
   } catch (error) {
     console.error('Erro ao carregar cenário:', error)
@@ -63,7 +106,7 @@ async function investigarAcao(acao) {
 
   try {
     const resultado = await registrarAcao(
-      tentativaId,
+      tentativaId.value,
       acao.id
     )
 
@@ -78,84 +121,234 @@ async function investigarAcao(acao) {
 }
 
 // Carregar os dados quando a tela for aberta.
-onMounted(() => {
-  carregarCenario()
-})
+// Atualizar a tela quando o cenário ou a tentativa mudar.
+watch(
+  () => [
+    route.params.tentativaId,
+    route.params.cenarioId
+  ],
+  () => {
+    resultadoAcao.value = null
+    erroAcao.value = ''
+    mensagemNavegacao.value = ''
+
+    carregarCenario()
+  },
+  { immediate: true }
+)
+// Abrir o próximo estudo de caso.
+async function irParaProximoCaso() {
+  if (carregandoProximoCaso.value) return
+
+  carregandoProximoCaso.value = true
+  mensagemNavegacao.value = ''
+
+  try {
+    // Consultar os cenários disponíveis.
+    const resposta = await listarCenarios()
+
+    const listaCenarios = Array.isArray(resposta)
+      ? resposta
+      : resposta.cenarios || []
+
+    // Identificar a posição do cenário atual.
+    const indiceAtual = listaCenarios.findIndex(
+      item => Number(item.id) === Number(cenarioId.value)
+    )
+
+    if (indiceAtual === -1) {
+      throw new Error('Não foi possível identificar o estudo de caso atual.')
+    }
+
+    // Selecionar o próximo cenário.
+    const proximoCenario = listaCenarios[indiceAtual + 1]
+
+    if (!proximoCenario) {
+      mensagemNavegacao.value =
+        'Você chegou ao último estudo de caso disponível!'
+      return
+    }
+
+    // Criar uma nova tentativa para o próximo caso.
+    const novaTentativa = await iniciarTentativa(
+      proximoCenario.id
+    )
+
+    // Abrir o próximo estudo de caso.
+    await router.push({
+      name: 'simulacao',
+      params: {
+        tentativaId: novaTentativa.tentativa_id,
+        cenarioId: proximoCenario.id
+      }
+    })
+
+  } catch (error) {
+    console.error('Erro ao avançar para o próximo caso:', error)
+
+    mensagemNavegacao.value =
+      error.message || 'Não foi possível abrir o próximo caso.'
+
+  } finally {
+    carregandoProximoCaso.value = false
+  }
+}
 </script>
 
 <template>
   <main class="simulacao-pagina">
 
     <div class="simulacao-conteudo">
+      <!-- Navegação entre os estudos de caso -->
+<!-- Navegação principal -->
+<nav class="simulacao-navegacao">
 
-      <span class="simulacao-etiqueta">
-        TECHFIX AI · ÁREA DE SIMULAÇÃO
-      </span>
+  <div class="nav-esquerda">
+    <RouterLink to="/" class="botao-voltar-menu">
+      ← Voltar ao menu
+    </RouterLink>
+  </div>
+
+  <div class="nav-identidade">
+    <span class="nav-logo">TECHFIX AI</span>
+    <span class="nav-descricao">Área de aprendizado</span>
+  </div>
+
+  <div class="nav-direita">
+    <button
+      type="button"
+      class="botao-proximo-caso"
+      :disabled="carregandoProximoCaso || registrandoAcao"
+      @click="irParaProximoCaso"
+    >
+      {{
+        carregandoProximoCaso
+          ? 'Abrindo...'
+          : 'Próximo caso →'
+      }}
+    </button>
+  </div>
+
+</nav>
+
+<p
+  v-if="mensagemNavegacao"
+  class="mensagem-navegacao"
+  role="status"
+>
+  {{ mensagemNavegacao }}
+</p>
+      <!-- Identificação do sistema -->
+      
 
       <!-- Carregamento -->
-      <div v-if="carregando">
+      <div v-if="carregando" class="estado-pagina">
         <h1>Preparando seu desafio...</h1>
-        <p>Buscando as informações do cenário.</p>
+        <p>Estamos organizando as informações do estudo de caso.</p>
       </div>
 
-      <!-- Erro -->
-      <div v-else-if="erro">
+      <!-- Erro ao carregar -->
+      <div v-else-if="erro" class="estado-pagina">
         <h1>Não foi possível carregar o desafio.</h1>
         <p>{{ erro }}</p>
 
         <button
           type="button"
+          class="botao-investigar"
           @click="carregarCenario"
         >
           Tentar novamente
         </button>
       </div>
 
-      <!-- Dados do cenário -->
+      <!-- Conteúdo do cenário -->
       <template v-else-if="cenario">
 
-        <div class="simulacao-cabecalho">
+        <!-- Apresentação do estudo de caso -->
+        <section class="caso-apresentacao">
 
-          <span class="simulacao-categoria">
-            {{ cenario.categoria }}
-          </span>
+          <div class="caso-texto">
 
-          <h1>{{ cenario.titulo }}</h1>
-
-          <p>{{ cenario.descricao }}</p>
-
-          <div class="simulacao-informacoes">
-            <span>
-              <strong>Tentativa:</strong>
-              {{ tentativaId }}
+            <span class="caso-selo">
+              Estudo de caso
             </span>
 
-            <span>
-              <strong>Dificuldade:</strong>
-              {{ cenario.dificuldade }}
+            <span
+              v-if="cenario.categoria"
+              class="caso-categoria"
+            >
+              {{ cenario.categoria }}
             </span>
+
+            <h1>{{ cenario.titulo }}</h1>
+
+            <p class="caso-descricao">
+              {{ cenario.descricao }}
+            </p>
+
+            <div class="caso-missao">
+              <strong>Sua missão</strong>
+
+              <p>
+                Investigue as opções disponíveis e descubra
+                o que pode estar causando esse problema.
+              </p>
+            </div>
+
+            <span
+              v-if="cenario.dificuldade"
+              class="caso-dificuldade"
+            >
+              Nível do desafio: {{ cenario.dificuldade }}
+            </span>
+
           </div>
 
-        </div>
+          <!-- Imagem ilustrativa -->
+          <div class="caso-imagem">
 
-        <!-- Ações disponíveis -->
-        <section class="simulacao-secao">
+            <img
+              v-if="imagemCenario"
+              :src="imagemCenario"
+              :alt="`Ilustração: ${cenario.titulo}`"
+            />
 
-          <h2>Ações disponíveis</h2>
+            <div v-else class="caso-imagem-indisponivel">
+              <span>Ilustração do desafio</span>
+              <p>
+                Uma imagem para este estudo de caso será adicionada em breve.
+              </p>
+            </div>
 
-          <p>
-            Escolha quais elementos deseja investigar
-            para identificar a origem do problema.
-          </p>
+          </div>
 
-          <div v-if="acoes.length" class="simulacao-lista">
+        </section>
+
+        <!-- Investigação -->
+        <section class="simulacao-secao investigacao-secao">
+
+          <div class="secao-titulo">
+            <h2>Vamos investigar?</h2>
+
+            <p>
+              Escolha uma opção para começar a descobrir o que aconteceu.
+            </p>
+          </div>
+
+          <div
+            v-if="acoes.length"
+            class="investigacao-lista"
+          >
 
             <article
               v-for="acao in acoes"
               :key="acao.id"
-              class="simulacao-item"
+              class="investigacao-card"
             >
-              <span>{{ acao.descricao }}</span>
+
+              <div class="investigacao-texto">
+                <h3>{{ acao.descricao }}</h3>
+              </div>
 
               <button
                 type="button"
@@ -174,11 +367,11 @@ onMounted(() => {
 
           </div>
 
-          <p v-else>
-            Nenhuma ação disponível para este cenário.
+          <p v-else class="mensagem-vazia">
+            Nenhuma opção de investigação está disponível neste momento.
           </p>
 
-          <!-- Erro ao registrar ação -->
+          <!-- Erro ao investigar -->
           <div
             v-if="erroAcao"
             class="resultado-acao resultado-erro"
@@ -194,94 +387,54 @@ onMounted(() => {
             role="status"
           >
 
-            <h3>Resultado da investigação</h3>
+            <h3>O que você descobriu?</h3>
 
             <p>{{ resultadoAcao.resultado }}</p>
 
             <p>
-              <strong>Relevância:</strong>
-
               {{
                 resultadoAcao.relevante
-                  ? 'Ação relevante'
-                  : 'Ação não relevante'
+                  ? 'Essa investigação trouxe uma pista importante!'
+                  : 'Essa investigação não ajudou diretamente a identificar o problema. Continue tentando!'
               }}
             </p>
 
-            <p>
-              <strong>Pontos obtidos:</strong>
-              {{ resultadoAcao.pontos_obtidos }}
-            </p>
+            <div class="resultado-pontos">
+              <span>Pontos conquistados</span>
+
+              <strong>
+                +{{ resultadoAcao.pontos_obtidos }} pontos
+              </strong>
+            </div>
 
           </div>
 
         </section>
 
-        <!-- Histórico das ações -->
+        <!-- Histórico da investigação -->
         <section
           v-if="acoesRegistradas.length"
-          class="simulacao-secao"
+          class="simulacao-secao historico-secao"
         >
-          <h2>Histórico da investigação</h2>
 
-          <div class="simulacao-lista">
+          <h2>Suas investigações</h2>
+
+          <div class="historico-lista">
 
             <article
               v-for="(registro, indice) in acoesRegistradas"
               :key="registro.registro_id || indice"
-              class="simulacao-item"
+              class="historico-item"
             >
-              <span>{{ registro.acao }}</span>
+
+              <span>
+                {{ registro.acao }}
+              </span>
 
               <strong>
                 +{{ registro.pontos_obtidos }} pontos
               </strong>
-            </article>
 
-          </div>
-        </section>
-
-        <!-- Dicas disponíveis -->
-        <section class="simulacao-secao">
-
-          <h2>Dicas disponíveis</h2>
-
-          <p>
-            Você poderá solicitar dicas durante sua investigação.
-          </p>
-
-          <div class="simulacao-lista">
-
-            <article
-              v-for="dica in dicas"
-              :key="dica.id"
-              class="simulacao-item"
-            >
-              Dica nível {{ dica.nivel }}
-            </article>
-
-          </div>
-
-        </section>
-
-        <!-- Diagnósticos possíveis -->
-        <section class="simulacao-secao">
-
-          <h2>Diagnósticos possíveis</h2>
-
-          <p>
-            Ao concluir sua investigação, escolha o diagnóstico
-            que melhor explica o problema.
-          </p>
-
-          <div class="simulacao-lista">
-
-            <article
-              v-for="diagnostico in diagnosticos"
-              :key="diagnostico.id"
-              class="simulacao-item"
-            >
-              {{ diagnostico.descricao }}
             </article>
 
           </div>
@@ -290,10 +443,7 @@ onMounted(() => {
 
       </template>
 
-      <RouterLink to="/" class="simulacao-voltar">
-        ← Voltar ao menu principal
-      </RouterLink>
-
+   
     </div>
 
   </main>
