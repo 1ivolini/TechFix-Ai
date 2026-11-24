@@ -1,0 +1,57 @@
+
+:root {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #172554;
+    background-color: #f5f7fc;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    scroll-behavior: smooth;
+}
+
+body {
+    width: 100%;
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #172554;
+    background: #f5f7fc;
+}
+
+#app {
+    width: 100%;
+    min-width: 320px;
+    min-height: 100vh;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+}
+
+button,
+a {
+    font: inherit;
+}
+
+button {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 4px;
+}

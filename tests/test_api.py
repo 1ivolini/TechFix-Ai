@@ -410,3 +410,87 @@ def test_registrar_acao_sem_token(client):
     )
 
     assert resposta.status_code == 401
+
+def test_nao_permitir_consultar_tentativa_de_outro_usuario(client):
+    connection = MagicMock()
+    cursor = MagicMock()
+
+    connection.cursor.return_value = cursor
+
+    # Simula uma tentativa que não pertence ao usuário autenticado.
+    cursor.fetchone.return_value = None
+
+    with patch("app.get_connection", return_value=connection):
+        response = client.get(
+            "/tentativas/2",
+            headers=gerar_headers(1)
+        )
+
+    assert response.status_code == 404
+
+    assert response.get_json() == {
+        "erro": "Tentativa não encontrada."
+    }
+
+    cursor.close.assert_called_once()
+    connection.close.assert_called_once()
+
+def test_nao_permitir_registrar_acao_em_tentativa_de_outro_usuario(client):
+    connection = MagicMock()
+    cursor = MagicMock()
+
+    connection.cursor.return_value = cursor
+
+    # Simula uma tentativa pertencente a outro usuário.
+    cursor.fetchone.return_value = {
+        "id": 2,
+        "usuario_id": 2,
+        "cenario_id": 1,
+        "concluida": 0,
+    }
+
+    with patch("app.get_connection", return_value=connection):
+        response = client.post(
+            "/tentativas/2/acoes",
+            json={"acao_id": 9},
+            headers=gerar_headers(1)
+        )
+
+    assert response.status_code == 403
+
+    assert response.get_json() == {
+        "erro": "Você não tem permissão para acessar esta tentativa."
+    }
+
+    cursor.close.assert_called_once()
+    connection.close.assert_called_once()
+
+def test_nao_permitir_finalizar_tentativa_de_outro_usuario(client):
+    connection = MagicMock()
+    cursor = MagicMock()
+
+    connection.cursor.return_value = cursor
+
+    # Simula uma tentativa pertencente a outro usuário.
+    cursor.fetchone.return_value = {
+        "id": 2,
+        "usuario_id": 2,
+        "cenario_id": 1,
+        "concluida": 0,
+    }
+
+    with patch("app.get_connection", return_value=connection):
+        response = client.post(
+            "/tentativas/2/finalizar",
+            json={"diagnostico_id": 8},
+            headers=gerar_headers(1)
+        )
+
+    assert response.status_code == 403
+
+    assert response.get_json() == {
+        "erro": "Você não tem permissão para acessar esta tentativa."
+    }
+
+    cursor.close.assert_called_once()
+    connection.close.assert_called_once()

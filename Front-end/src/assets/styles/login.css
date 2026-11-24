@@ -1,0 +1,579 @@
+
+/* Estrutura principal */
+
+.login-layout {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    min-height: 100vh;
+    background: #f3f5f9;
+}
+
+/* Painel esquerdo */
+
+.login-visual {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100vh;
+    padding: 50px 55px;
+    overflow: hidden;
+    background: #111d40;
+    color: #ffffff;
+}
+
+/* Elementos decorativos */
+
+.login-visual::before {
+    content: "";
+    position: absolute;
+    width: 340px;
+    height: 340px;
+    right: -170px;
+    top: 25%;
+    border: 1px solid rgb(96 165 250 / 15%);
+    border-radius: 50%;
+}
+
+.login-visual::after {
+    content: "";
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    right: -120px;
+    top: 32%;
+    border: 1px solid rgb(96 165 250 / 15%);
+    border-radius: 50%;
+}
+
+/* Marca */
+
+.login-marca {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.login-marca-icone {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    place-items: center;
+    border-radius: 12px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    box-shadow: 0 5px 16px rgb(37 99 235 / 25%);
+}
+
+.login-marca-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.login-marca-texto strong {
+    font-size: 19px;
+    letter-spacing: 0.4px;
+}
+
+.login-marca-texto strong span {
+    color: #60a5fa;
+}
+
+.login-marca-texto small {
+    color: #bfcee9;
+    font-size: 11px;
+}
+
+/* Apresentação */
+
+.login-apresentacao {
+    position: relative;
+    z-index: 1;
+    max-width: 490px;
+    margin: 40px auto;
+    width: 100%;
+    animation: loginEntrada 0.8s ease both;
+}
+
+.login-etiqueta,
+.login-etiqueta-clara {
+    display: inline-block;
+    margin-bottom: 18px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+}
+
+.login-etiqueta {
+    color: #60a5fa;
+}
+
+.login-apresentacao h1 {
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(34px, 4vw, 48px);
+    line-height: 1.15;
+    letter-spacing: -1.5px;
+}
+
+.login-apresentacao h1 span {
+    display: block;
+    color: #60a5fa;
+}
+
+.login-apresentacao p {
+    max-width: 430px;
+    margin: 22px 0;
+    color: #bfcee9;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+/* Ilustração de hardware */
+
+.login-ilustracao {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.login-ilustracao svg {
+    width: min(100%, 240px);
+    height: auto;
+
+    animation: loginFlutuar 1.8s ease-in-out infinite;
+
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* Benefícios */
+
+.login-beneficios {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.login-beneficios span {
+    padding: 9px 12px;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 7px;
+    background: rgb(255 255 255 / 5%);
+    color: #dbeafe;
+    font-size: 11px;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.login-beneficios span:hover {
+    border-color: #60a5fa;
+    background: rgb(96 165 250 / 10%);
+}
+
+.login-assinatura {
+    position: relative;
+    z-index: 1;
+    margin-top: 30px;
+    color: #93a9d4;
+    font-size: 11px;
+}
+
+/* Área direita */
+
+.login-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px;
+    background: linear-gradient(
+    135deg,
+    #f3f5f9 0%,
+    #edf2fa 100%
+);
+}
+
+/* Cartão */
+
+.login-card {
+    width: 100%;
+    max-width: 430px;
+    padding: 40px;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    background: #ffffff;
+
+    box-shadow:
+        0 15px 35px rgb(15 23 42 / 8%),
+        0 4px 12px rgb(15 23 42 / 4%);
+
+    animation: loginEntrada 0.7s ease both;
+}
+
+/* Cabeçalho do formulário */
+
+.login-etiqueta-clara {
+    color: #2563eb;
+}
+
+.login-cabecalho {
+    margin-bottom: 35px;
+}
+
+.login-cabecalho h2 {
+    margin: 0 0 12px;
+    color: #172554;
+    font-size: 27px;
+    font-weight: 800;
+    letter-spacing: -0.7px;
+}
+
+.login-cabecalho p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+/* Campos */
+
+.login-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-bottom: 22px;
+}
+
+.login-campo label {
+    color: #334155;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.login-campo input {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1px solid #d5deed;
+    border-radius: 9px;
+    outline: none;
+    background: #ffffff;
+    color: #172554;
+    font-size: 13px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.login-campo input::placeholder {
+    color: #94a3b8;
+}
+
+.login-campo input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 10%);
+}
+
+/* Mostrar senha */
+
+.login-senha-wrapper {
+    position: relative;
+}
+
+.login-senha-wrapper input {
+    padding-right: 85px;
+}
+
+.login-mostrar-senha {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    padding: 5px;
+    border: none;
+    background: transparent;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* Erro */
+
+.login-erro {
+    margin: 0 0 18px;
+    padding: 11px;
+    border: 1px solid #fecaca;
+    border-radius: 7px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Botão */
+
+.login-botao {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 49px;
+    margin-top: 8px;
+    border: none;
+    border-radius: 9px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.login-botao:hover:not(:disabled) {
+    transform: translateY(-2px);
+    background: #1d4ed8;
+    box-shadow: 0 7px 16px rgb(37 99 235 / 20%);
+}
+
+.login-botao:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.login-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgb(255 255 255 / 40%);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: loginGirar 0.7s linear infinite;
+}
+
+/* Rodapé do formulário */
+
+.login-divisor {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin: 28px 0;
+    color: #94a3b8;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+}
+
+.login-divisor::before,
+.login-divisor::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+.login-voltar {
+    display: block;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+}
+
+.login-voltar:hover {
+    text-decoration: underline;
+}
+
+.login-rodape {
+    margin: 28px 0 0;
+    color: #94a3b8;
+    font-size: 11px;
+    text-align: center;
+}
+
+/* Animações */
+
+@keyframes loginEntrada {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes loginFlutuar {
+    0% {
+        transform: translate3d(0, 0, 0);
+    }
+
+    50% {
+        transform: translate3d(0, -5px, 0);
+    }
+
+    100% {
+        transform: translate3d(0, 0, 0);
+    }
+}
+@keyframes loginGirar {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsividade */
+
+@media (max-width: 850px) {
+    .login-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .login-visual {
+        min-height: auto;
+        padding: 32px 25px;
+    }
+
+    .login-apresentacao {
+        margin: 45px auto;
+    }
+
+    .login-apresentacao h1 {
+        font-size: 36px;
+    }
+
+    .login-ilustracao svg {
+        width: 170px;
+    }
+
+    .login-beneficios {
+        margin-top: 10px;
+    }
+
+    .login-assinatura {
+        margin-top: 20px;
+    }
+
+    .login-area {
+        min-height: auto;
+        padding: 45px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-visual {
+        padding: 28px 20px;
+    }
+
+    .login-apresentacao h1 {
+        font-size: 32px;
+    }
+
+    .login-card {
+        padding: 30px 23px;
+    }
+
+    .login-cabecalho h2 {
+        font-size: 23px;
+    }
+
+    .login-beneficios span {
+        font-size: 10px;
+    }
+}
+
+/* Preferência por movimento reduzido */
+
+@media (prefers-reduced-motion: reduce) {
+    .login-layout *,
+    .login-layout *::before,
+    .login-layout *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Ajustes da tela de cadastro */
+
+.cadastro-card {
+    max-width: 460px;
+}
+
+.cadastro-sucesso {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 0;
+    animation: loginEntrada 0.5s ease both;
+}
+
+.cadastro-sucesso-icone {
+    display: grid;
+    width: 54px;
+    height: 54px;
+    margin-bottom: 18px;
+    place-items: center;
+    border-radius: 50%;
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 25px;
+    font-weight: 800;
+}
+
+.cadastro-sucesso h3 {
+    margin: 0 0 10px;
+    color: #172554;
+    font-size: 21px;
+}
+
+.cadastro-sucesso p {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.cadastro-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 15px;
+    text-decoration: none;
+}
+
+/* Navegação entre autenticação e cadastro */
+
+.login-navegacao {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 25px;
+}
+
+.login-navegacao .login-voltar {
+    margin: 0;
+}
+
+.login-cadastro-link {
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.login-cadastro-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}

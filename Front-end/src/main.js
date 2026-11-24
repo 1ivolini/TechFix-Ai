@@ -1,6 +1,12 @@
-import './assets/main.css'
 
 import { createApp } from 'vue'
 import App from './App.vue'
+import router from './router'
 
-createApp(App).mount('#app')
+import './assets/styles/global.css'
+import './assets/styles/home.css'
+import './assets/styles/login.css'
+import './assets/styles/simulacao.css'
+createApp(App)
+  .use(router)
+  .mount('#app')

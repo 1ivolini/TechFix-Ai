@@ -1,0 +1,245 @@
+
+/* Página de simulação */
+
+.simulacao-pagina {
+    min-height: 100vh;
+    padding: 45px 24px;
+    background: #f3f5f9;
+}
+
+.simulacao-conteudo {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* Identificação */
+
+.simulacao-etiqueta {
+    display: inline-block;
+    margin-bottom: 18px;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.3px;
+}
+
+/* Cabeçalho do cenário */
+
+.simulacao-cabecalho {
+    padding: 30px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 5px 18px rgb(15 23 42 / 4%);
+}
+
+.simulacao-categoria {
+    display: inline-block;
+    padding: 6px 11px;
+    border-radius: 6px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.simulacao-cabecalho h1 {
+    margin: 18px 0 12px;
+    color: #172554;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.7px;
+}
+
+.simulacao-cabecalho p {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+/* Informações da tentativa */
+
+.simulacao-informacoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.simulacao-informacoes span {
+    padding: 9px 13px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+}
+
+.simulacao-informacoes strong {
+    color: #172554;
+}
+
+/* Seções da simulação */
+
+.simulacao-secao {
+    margin-top: 28px;
+    padding: 26px;
+    border: 1px solid #e2e8f0;
+    border-radius: 15px;
+    background: #ffffff;
+    box-shadow: 0 5px 18px rgb(15 23 42 / 3%);
+}
+
+.simulacao-secao h2 {
+    margin: 0 0 10px;
+    color: #172554;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.simulacao-secao > p {
+    margin: 0 0 22px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+/* Listagem de ações, dicas e diagnósticos */
+
+.simulacao-lista {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.simulacao-item {
+    display: flex;
+    align-items: center;
+    min-height: 58px;
+    padding: 15px;
+    border: 1px solid #e5eaf2;
+    border-radius: 10px;
+    background: #f8faff;
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.6;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.simulacao-item:hover {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+}
+
+/* Botão de retorno */
+
+.simulacao-voltar {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 28px;
+    padding: 11px 16px;
+    border-radius: 8px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.simulacao-voltar:hover {
+    transform: translateY(-2px);
+    background: #1d4ed8;
+}
+
+/* Responsividade */
+
+@media (max-width: 650px) {
+    .simulacao-pagina {
+        padding: 25px 16px;
+    }
+
+    .simulacao-cabecalho {
+        padding: 22px;
+    }
+
+    .simulacao-cabecalho h1 {
+        font-size: 24px;
+    }
+
+    .simulacao-secao {
+        padding: 20px;
+    }
+
+    .simulacao-lista {
+        grid-template-columns: 1fr;
+    }
+
+    .simulacao-informacoes {
+        flex-direction: column;
+    }
+
+}
+
+/* Botão para investigar uma ação */
+
+.botao-investigar {
+    margin-left: auto;
+    padding: 9px 15px;
+    border: none;
+    border-radius: 7px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.botao-investigar:hover:not(:disabled) {
+    background: #1d4ed8;
+}
+
+.botao-investigar:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Resultado da investigação */
+
+.resultado-acao {
+    margin-top: 22px;
+    padding: 20px;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    background: #eff6ff;
+}
+
+.resultado-acao h3 {
+    margin: 0 0 12px;
+    color: #1e40af;
+    font-size: 17px;
+}
+
+.resultado-acao p {
+    margin: 8px 0;
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.resultado-erro {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+/* Ajuste dos cartões de ação */
+
+.simulacao-item {
+    justify-content: space-between;
+    gap: 12px;
+}
